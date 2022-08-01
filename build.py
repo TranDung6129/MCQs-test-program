@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import messagebox
-from tkinter.messagebox import showinfo
+from tkinter import simpledialog
 import sqlite3
 from PIL import Image, ImageTk
 import time
@@ -9,10 +9,13 @@ from tkinter import filedialog as fd
 import pandas
 import math
 import sympy as sp
+import numpy
+import os.path
 
 timer = None
 
 
+# Main Screen
 class MainScreen(Tk):
 
     def __init__(self):
@@ -174,7 +177,7 @@ class ImportFile(Toplevel):
 
     def display_instruction(self):
 
-        with open("files/instruction.txt") as instruction:
+        with open("files/instruction_import.txt") as instruction:
             self.instruction_content = messagebox.showinfo(title="Instruction", message=instruction.read())
 
     def get_time(self):
@@ -203,7 +206,6 @@ class ImportFile(Toplevel):
                                  test_name=self.entry_subject.get(),
                                  test_time=self.get_time())
             test_screen.grab_set()
-            # program.destroy()
 
 
 class CreateFile(Toplevel):
@@ -212,57 +214,218 @@ class CreateFile(Toplevel):
         super().__init__(parent)
 
         self.title("Tạo đề")
-        self.geometry("800x600")
+        self.geometry("680x600")
+        self.menubar = Menu(self)
 
         self.display_label()
         self.display_button()
         self.display_entry()
+        self.display_menu()
+
+        self.filename = ""
+        self.import_filepath = ""
+        self.new_test_name = ""
+
+        self.cur_adding = 0
+
+        self.questions = []
+        self.choices = []
+        self.answer = []
+        self.questions_dict = {"question": self.questions,
+                               "choices": self.choices,
+                               "answer": self.answer}
+
+        self.temp_question = []
+
+        self.config(menu=self.menubar)
+
+    def choose_file(self):
+        filetypes = (
+            ('csv files', "*.csv"),
+        )
+        self.filename = fd.askopenfilename(
+            title='Open a file',
+            initialdir='/',
+            filetypes=filetypes)
 
     def display_label(self):
+
         self.create_label = Label(self, text="CREATE TEST", font=("Oswald", 30, "bold"))
-        self.create_label.grid(column=0, row=0, columnspan=4)
+        self.create_label.grid(column=0, row=0, columnspan=2)
 
         self.question_label = Label(self, text="Question: ", font=("Oswald", 15))
-        self.question_label.grid(column=0, row=1, sticky=W)
+        self.question_label.grid(column=0, row=1, padx=10, sticky=W)
 
         self.choice_label = Label(self, text="Choices: ", font=("Oswald", 15))
-        self.choice_label.grid(column=0, row=4, sticky=W)
+        self.choice_label.grid(column=0, row=4, padx=10, sticky=W)
 
         self.answer_label = Label(self, text="Answer: ", font=("Oswald", 15))
-        self.answer_label.grid(column=0, row=7, sticky=W)
+        self.answer_label.grid(column=0, row=7, padx=10, sticky=W)
 
     def display_button(self):
-        self.create_button = Button(self, text="Create", font=("Oswald", 15))
-        self.create_button.grid(column=3, row=10)
 
-        self.see_question_button = Button(self, text="See", font=("Oswald", 15))
-        self.see_question_button.grid(column=2, row=2, sticky=E)
-
-        self.add_question_button = Button(self, text="Add", font=("Oswald", 15))
-        self.add_question_button.grid(column=2, row=3, sticky=N)
-
-        self.see_choice_button = Button(self, text="See", font=("Oswald", 15))
-        self.see_choice_button.grid(column=2, row=5, sticky=N)
-
-        self.add_choice_button = Button(self, text="Add", font=("Oswald", 15))
-        self.add_choice_button.grid(column=2, row=6)
-
-        self.add_answer_button = Button(self, text="Add", font=("Oswald", 15))
-        self.add_answer_button.grid(column=2, row=8)
-
-        self.see_answer_button = Button(self, text="See", font=("Oswald", 15))
-        self.see_answer_button.grid(column=2, row=9, sticky=N)
+        self.create_button = Button(self, text="Create", font=("Oswald", 15), width=8, command=self.create_question)
+        self.create_button.grid(column=0, row=10, pady=10, sticky=E)
 
     def display_entry(self):
 
         self.question_entry = Text(self, font=("Oswald", 15), width=60, height=5)
-        self.question_entry.grid(column=0, row=2, rowspan=2)
+        self.question_entry.grid(column=0, row=2, padx=10, rowspan=2, columnspan=2)
 
-        self.choice_entry = Text(self, font=("Oswald", 15), width=60, height=3)
-        self.choice_entry.grid(column=0, row=5, rowspan=2)
+        self.choice_entry = Text(self, font=("Oswald", 15), width=60, height=5)
+        self.choice_entry.grid(column=0, row=5, padx=10, rowspan=2, columnspan=2)
 
-        self.answer_entry = Text(self, font=("Oswald", 15), width=60, height=3)
-        self.answer_entry.grid(column=0, row=8, rowspan=2)
+        self.answer_entry = Text(self, font=("Oswald", 15), width=60, height=5)
+        self.answer_entry.grid(column=0, row=8, padx=10, rowspan=2, columnspan=2)
+
+    def display_menu(self):
+
+        file = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="File", menu=file)
+        file.add_command(label="Open...", command=self.import_exist_file)
+        file.add_command(label="Save", command=self.export_file)
+        file.add_separator()
+        file.add_command(label="Exit", command=self.exit_button)
+
+        edit = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='Edit', menu=edit)
+        edit.add_command(label="Change...", command=self.adjust_test)
+
+        help_ = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Help", menu=help_)
+        help_.add_command(label="Instruction", command=self.instruction_create_test)
+
+    def clear_question(self):
+
+        self.question_entry.delete("1.0", END)
+
+    def clear_answer(self):
+
+        self.answer_entry.delete("1.0", END)
+
+    def clear_choices(self):
+
+        self.choice_entry.delete("1.0", END)
+
+    def create_question(self):
+
+        self.temp_question = []
+        question = self.question_entry.get("1.0", "end-1c")
+        choices = self.choice_entry.get("1.0", "end-1c")
+        answer = self.answer_entry.get("1.0", "end-1c")
+
+        self.temp_question.append(question)
+        self.temp_question.append(choices)
+        self.temp_question.append(answer)
+
+        if len(self.temp_question) < 3:
+            for value, content in enumerate(self.temp_question, 0):
+                if self.temp_question[value] == "":
+                    messagebox.showerror(title="Error", message="Some field haven't enter, please fill it and try "
+                                                                "again!")
+                break
+        else:
+            for value, content in enumerate(self.temp_question, 0):
+                if self.temp_question[value] == "":
+                    messagebox.showerror(title="Error", message="Some field haven't enter, please fill it and try "
+                                                                "again!")
+                break
+            self.questions_dict["question"].append(question)
+            self.questions_dict["choices"].append(choices)
+            self.questions_dict["answer"].append(answer)
+
+            self.clear_question()
+            self.clear_choices()
+            self.clear_answer()
+
+    def export_file(self):
+
+        self.new_test_name = simpledialog.askstring(title="Add file", prompt="New test file name: ")
+        file_exist = os.path.exists(self.new_test_name)
+        res = ""
+        nos = ""
+
+        if file_exist:
+            nos = messagebox.askyesnocancel(title="File already exist", message="This file already exist, do you want "
+                                                                                "to replace this file?")
+            if nos:
+                self.check_to_add_file()
+
+        else:
+            self.check_to_add_file()
+
+    def check_to_add_file(self):
+
+        if self.new_test_name is None:
+            messagebox.showerror(title="Invalid file name", message="Please enter file name")
+
+        else:
+
+            if len(self.questions_dict["question"]) == 0:
+                messagebox.showerror(title="Nothing exist in test",
+                                     message="Look like you didn't add anything to test, please add at least one "
+                                             "question to save test")
+            else:
+                res = messagebox.askyesno(title="Export File", message="Are you sure to export file?")
+                if res:
+                    question_file = pandas.DataFrame.from_dict(self.questions_dict)
+                    question_file.to_csv(f"./test/{self.new_test_name}.csv", index=False)
+                messagebox.showinfo(title="Success", message="File export successfully")
+
+    def exit_button(self):
+        is_back = messagebox.askokcancel(title="Warning", message="Are you sure to back? Your progress will be saved")
+        if is_back:
+            print(type(self.questions_dict))
+            self.destroy()
+
+    def adjust_test(self):
+        adjust_test_screen = AdjustTest(self)
+        adjust_test_screen.grab_set()
+
+    def instruction_create_test(self):
+
+        with open("files/instruction_export.txt") as instruction:
+            self.instruction_content = messagebox.showinfo(title="Instruction", message=instruction.read())
+
+    def import_exist_file(self):
+        try:
+            self.choose_file()
+            filepath = self.filename
+            pandas.read_csv(filepath)
+        except FileNotFoundError:
+            messagebox.showerror(title="Error", message="File no exist or you haven't provide file path!")
+        else:
+            messagebox.showinfo(title="Success", message="File import successfully")
+
+            self.import_filepath = self.filename
+            questions_df = pandas.read_csv(self.import_filepath)
+
+            self.questions = questions_df["question"].to_list()
+            self.choices = questions_df["choices"].to_list()
+            self.answer = questions_df["answer"].to_list()
+
+            self.questions_dict = {"question": self.questions,
+                                   "choices": self.choices,
+                                   "answer": self.answer}
+
+            if len(self.questions) == 0:
+                self.cur_adding = 0
+            else:
+                self.cur_adding = len(self.questions)
+
+            # self.questions_dict.index = np.arange(1, len(self.questions_dict) + 1)
+            # self.questions_dict = self.questions_dict.to_dict()
+
+
+class AdjustTest(Toplevel):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.title("Làm bài")
+        self.geometry("800x600")
+
+
 
 class TestOn(Toplevel):
 
