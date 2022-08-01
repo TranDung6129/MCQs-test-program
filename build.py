@@ -62,7 +62,7 @@ class MainScreen(Tk):
         self.create_mode_but.place(x=472, y=220)
 
         self.test_history_but = Button(self, text="HISTORY", width=20, height=1, font=("Oswald", 15, "bold"),
-                                       command=self.check_history)
+                                       command=self.history_mode)
         self.test_history_but.place(x=472, y=280)
 
     def display_register_system(self):
@@ -97,6 +97,7 @@ class MainScreen(Tk):
         else:
 
             messagebox.showinfo(title="Success", message="Login successfully")
+            return True
 
     def check_to_add_username(self):
 
@@ -110,9 +111,6 @@ class MainScreen(Tk):
             os.makedirs(f"./userdata/{self.new_username}")
             messagebox.showinfo(title="Success", message="Create new user successfully")
 
-    def check_history(self):
-        pass
-
     def import_mode(self):
         if self.check_register():
             self.import_window = ImportFile(self)
@@ -124,9 +122,9 @@ class MainScreen(Tk):
             self.create_window.grab_set()
 
     def history_mode(self):
-        self.check_register()
-        self.history_window = CheckHistory(self)
-        self.history_window.grab_set()
+        if self.check_register():
+            self.history_window = CheckHistory(self)
+            self.history_window.grab_set()
 
 
 class ImportFile(Toplevel):
@@ -488,8 +486,7 @@ class AdjustTest(Toplevel):
 
         self.title("Làm bài")
         self.geometry("800x600")
-    
-    
+
 
 class CheckHistory(Toplevel):
 
@@ -498,6 +495,20 @@ class CheckHistory(Toplevel):
 
         self.title("Lịch sử")
         self.geometry("800x600")
+        self.display_label()
+        self.display_button()
+
+    def display_label(self):
+        self.sorry = Label(self, text="This function is under development, sorry about the inconvenience",
+                           font=("Oswald", 15, "bold"))
+        self.sorry.grid(column=0, row=1)
+
+    def display_button(self):
+        self.back = Button(self, text="OK", font=("Oswald", 15), command=self.destroy)
+        self.back.grid(column=0, row=2)
+
+    def check_history(self):
+        pass
 
 
 class TestOn(Toplevel):
