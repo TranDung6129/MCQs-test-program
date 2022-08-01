@@ -24,45 +24,109 @@ class MainScreen(Tk):
         self.title("Lựa chọn")
         self.geometry("800x600")
 
+        self.display_canvas()
+        self.display_label()
+        self.display_button()
+        self.display_register_system()
+
+    def display_canvas(self):
         # Canvas
-        canvas = Canvas(self, width=800, height=600)
+        self.canvas = Canvas(self, width=800, height=600)
         self.start_image = Image.open("images/image_1.png")
         self.start_image = self.start_image.resize((800, 600), Image.ANTIALIAS)
         self.start_image = ImageTk.PhotoImage(self.start_image)
-        canvas.create_image(-400, 0, anchor=NW, image=self.start_image)
-        canvas.config(highlightthickness=0)
-        canvas.create_text(150, 90, text="Chương trình\nlàm bài thi \ntrắc nghiệm",
-                           font=('Oswald', 32, "bold"),
-                           fill="#26603A")
-        canvas.create_text(705, 585, text="Trần Mạnh Dũng - 20206129", font=("Oswald", 10))
-        canvas.grid(column=0, row=0, rowspan=2, columnspan=2)
+        self.canvas.create_image(-400, 0, anchor=NW, image=self.start_image)
+        self.canvas.config(highlightthickness=0)
+        self.canvas.create_text(150, 90, text="Chương trình\nlàm bài thi \ntrắc nghiệm",
+                                font=('Oswald', 32, "bold"),
+                                fill="#26603A")
+        self.canvas.create_text(705, 585, text="Trần Mạnh Dũng - 20206129", font=("Oswald", 10))
+        self.canvas.grid(column=0, row=0, rowspan=2, columnspan=2)
 
-        welcome = Label(self, text="WELCOME", font=('Oswald', 32, "bold"), fg="#1E9052")
-        welcome.place(x=480, y=45)
+    def display_label(self):
+        self.welcome = Label(self, text="WELCOME", font=('Oswald', 32, "bold"), fg="#1E9052")
+        self.welcome.place(x=480, y=45)
 
-        notif_1 = Label(self, text="Import or create your own test", font=('Oswald', 10))
-        notif_1.place(x=510, y=100)
+        self.notif_1 = Label(self, text="Import or create your own test", font=('Oswald', 10))
+        self.notif_1.place(x=510, y=100)
 
-        import_mode_but = Button(self, text="IMPORT", bg="#E7F492", width=20, height=1,
-                                 font=('Oswald', 15, "bold"),
-                                 fg="#451111", command=self.import_mode)
-        import_mode_but.place(x=472, y=160)
+    def display_button(self):
+        self.import_mode_but = Button(self, text="IMPORT", bg="#E7F492", width=20, height=1,
+                                      font=('Oswald', 15, "bold"),
+                                      fg="#451111", command=self.import_mode)
+        self.import_mode_but.place(x=472, y=160)
 
-        create_mode_but = Button(self, text="CREATE", bg="#99CCFF", width=20, height=1,
-                                 font=('Oswald', 15, "bold"),
-                                 fg="#451111", command=self.create_mode)
-        create_mode_but.place(x=472, y=220)
+        self.create_mode_but = Button(self, text="CREATE", bg="#99CCFF", width=20, height=1,
+                                      font=('Oswald', 15, "bold"),
+                                      fg="#451111", command=self.create_mode)
+        self.create_mode_but.place(x=472, y=220)
 
-        username = Entry(self, bg="#99D7AE", font=('Oswald', 15))
-        username.place(x=472, y=300, width=250, height=25)
+        self.test_history_but = Button(self, text="HISTORY", width=20, height=1, font=("Oswald", 15, "bold"),
+                                       command=self.check_history)
+        self.test_history_but.place(x=472, y=280)
+
+    def display_register_system(self):
+        self.username_box = Entry(self, bg="#99D7AE", font=('Oswald', 15))
+        self.username_box.place(x=472, y=360, width=250, height=25)
+
+        self.username_label = Label(self, text="USERNAME:", font=('Oswald', 10))
+        self.username_label.place(x=470, y=335)
+
+    def check_register(self):
+
+        res = ""
+        username = self.username_box.get()
+        isExist = os.path.exists(f"./userdata/{username}")
+
+        if username == "":
+            res = messagebox.askyesno(title="Enter your username",
+                                      message="Please enter your user name, if you don't have "
+                                              "one, click 'Yes' to create new")
+            if res:
+                self.check_to_add_username()
+            else:
+                return False
+
+        elif not isExist:
+            res = messagebox.askyesno(title="User not found",
+                                      message="Check your username again or click 'Yes' button to create new")
+            if res:
+                self.check_to_add_username()
+            else:
+                return False
+        else:
+
+            messagebox.showinfo(title="Success", message="Login successfully")
+
+    def check_to_add_username(self):
+
+        self.new_username = simpledialog.askstring(title="Add username", prompt="Enter new username: ")
+
+        if self.new_username == None or self.new_username == "":
+            messagebox.showerror(title="Error", message="Please enter your new username")
+
+        else:
+            print(self.new_username)
+            os.makedirs(f"./userdata/{self.new_username}")
+            messagebox.showinfo(title="Success", message="Create new user successfully")
+
+    def check_history(self):
+        pass
 
     def import_mode(self):
-        import_window = ImportFile(self)
-        import_window.grab_set()
+        if self.check_register():
+            self.import_window = ImportFile(self)
+            self.import_window.grab_set()
 
     def create_mode(self):
-        create_window = CreateFile(self)
-        create_window.grab_set()
+        if self.check_register():
+            self.create_window = CreateFile(self)
+            self.create_window.grab_set()
+
+    def history_mode(self):
+        self.check_register()
+        self.history_window = CheckHistory(self)
+        self.history_window.grab_set()
 
 
 class ImportFile(Toplevel):
@@ -356,7 +420,7 @@ class CreateFile(Toplevel):
 
     def check_to_add_file(self):
 
-        if self.new_test_name is None:
+        if self.new_test_name is None or self.new_test_name == "":
             messagebox.showerror(title="Invalid file name", message="Please enter file name")
 
         else:
@@ -424,7 +488,16 @@ class AdjustTest(Toplevel):
 
         self.title("Làm bài")
         self.geometry("800x600")
+    
+    
 
+class CheckHistory(Toplevel):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.title("Lịch sử")
+        self.geometry("800x600")
 
 
 class TestOn(Toplevel):
@@ -452,6 +525,13 @@ class TestOn(Toplevel):
         self.questions = self.question_set.question.to_list()
         if suffle == 1:
             random.shuffle(self.questions)
+
+        if hard == 1:
+            messagebox.showinfo(title="Sorry", message="Hard mode is under development, sorry for the inconvenience")
+
+        if turn_back == 1:
+            messagebox.showinfo(title="Sorry", message="Allow turn back is under development, sorry for the "
+                                                       "inconvenience")
 
         self.display_question()
         self.display_choices()
