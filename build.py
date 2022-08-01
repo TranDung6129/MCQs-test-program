@@ -8,6 +8,7 @@ import random
 from tkinter import filedialog as fd
 import pandas
 import math
+import sympy as sp
 
 timer = None
 
@@ -22,7 +23,7 @@ class MainScreen(Tk):
 
         # Canvas
         canvas = Canvas(self, width=800, height=600)
-        self.start_image = Image.open("Images/image_1.png")
+        self.start_image = Image.open("images/image_1.png")
         self.start_image = self.start_image.resize((800, 600), Image.ANTIALIAS)
         self.start_image = ImageTk.PhotoImage(self.start_image)
         canvas.create_image(-400, 0, anchor=NW, image=self.start_image)
@@ -96,6 +97,9 @@ class ImportFile(Toplevel):
         self.entry_subject.insert(END, "Bài thi thử")
         self.entry_subject.place(x=400, y=302)
 
+        self.instruction_label = Label(self, text="IMPORT FILE", font=("Oswald", 40, "bold"))
+        self.instruction_label.place(x=235, y=20)
+
     def display_timerbox(self):
         # Timer box
         self.timer_label = Label(self, text="Set time: ", font=("Oswald", 15))
@@ -110,14 +114,14 @@ class ImportFile(Toplevel):
         self.timer_minute_label = Label(self, text="Minutes", font=("Oswald", 15))
         self.timer_minute_label.place(x=310, y=202)
         self.timer_box_minute = Entry(self, font=("Oswald", 15), justify="right")
-        self.timer_box_minute.insert(END, "45")
+        self.timer_box_minute.insert(END, "0")
         self.timer_box_minute.place(x=200, y=202, width=100, height=30)
 
         self.timer_second_label = Label(self, text="Seconds", font=("Oswald", 15))
         self.timer_second_label.place(x=310, y=242)
         self.timer_box_second = Entry(self, font=("Oswald", 15), justify="right")
         self.timer_box_second.place(x=200, y=242, width=100, height=30)
-        self.timer_box_second.insert(END, "0")
+        self.timer_box_second.insert(END, "30")
 
     def display_button(self):
         self.choose_file_but = Button(self, text="Import", font=("Oswald", 15), command=self.choose_file)
@@ -129,6 +133,9 @@ class ImportFile(Toplevel):
 
         self.next_button = Button(self, text="Next", bg="white", font=('Oswald', 15), command=self.start_test)
         self.next_button.place(x=660, y=530, width=100, height=30)
+
+        self.instruction_button = Button(self, text="I", font=("Oswald", 10, "bold"), command=self.display_instruction)
+        self.instruction_button.place(x=580, y=38, width=30, height=30)
 
     def display_checkbox(self):
         self.turn_back_var = IntVar()
@@ -146,7 +153,7 @@ class ImportFile(Toplevel):
         self.random_qs_var = IntVar()
         self.random_qs_var.set(2)
 
-        self.label_random_ques = Label(self, text="Suffle question: ", font=("Oswald", 15))
+        self.label_random_ques = Label(self, text="Shuffle question: ", font=("Oswald", 15))
         self.label_random_ques.place(x=90, y=422)
         self.random_check_box_yes = Checkbutton(self, variable=self.random_qs_var, onvalue=1, offvalue=2,
                                                 text="Yes")
@@ -164,6 +171,11 @@ class ImportFile(Toplevel):
         self.mode_check_box_box_no = Checkbutton(self, variable=self.hard_mode_var, onvalue=2, offvalue=1,
                                                  text="No")
         self.mode_check_box_box_no.place(x=500, y=480)
+
+    def display_instruction(self):
+
+        with open("files/instruction.txt") as instruction:
+            self.instruction_content = messagebox.showinfo(title="Instruction", message=instruction.read())
 
     def get_time(self):
         hours = int(self.timer_box_hour.get())
@@ -202,6 +214,55 @@ class CreateFile(Toplevel):
         self.title("Tạo đề")
         self.geometry("800x600")
 
+        self.display_label()
+        self.display_button()
+        self.display_entry()
+
+    def display_label(self):
+        self.create_label = Label(self, text="CREATE TEST", font=("Oswald", 30, "bold"))
+        self.create_label.grid(column=0, row=0, columnspan=4)
+
+        self.question_label = Label(self, text="Question: ", font=("Oswald", 15))
+        self.question_label.grid(column=0, row=1, sticky=W)
+
+        self.choice_label = Label(self, text="Choices: ", font=("Oswald", 15))
+        self.choice_label.grid(column=0, row=4, sticky=W)
+
+        self.answer_label = Label(self, text="Answer: ", font=("Oswald", 15))
+        self.answer_label.grid(column=0, row=7, sticky=W)
+
+    def display_button(self):
+        self.create_button = Button(self, text="Create", font=("Oswald", 15))
+        self.create_button.grid(column=3, row=10)
+
+        self.see_question_button = Button(self, text="See", font=("Oswald", 15))
+        self.see_question_button.grid(column=2, row=2, sticky=E)
+
+        self.add_question_button = Button(self, text="Add", font=("Oswald", 15))
+        self.add_question_button.grid(column=2, row=3, sticky=N)
+
+        self.see_choice_button = Button(self, text="See", font=("Oswald", 15))
+        self.see_choice_button.grid(column=2, row=5, sticky=N)
+
+        self.add_choice_button = Button(self, text="Add", font=("Oswald", 15))
+        self.add_choice_button.grid(column=2, row=6)
+
+        self.add_answer_button = Button(self, text="Add", font=("Oswald", 15))
+        self.add_answer_button.grid(column=2, row=8)
+
+        self.see_answer_button = Button(self, text="See", font=("Oswald", 15))
+        self.see_answer_button.grid(column=2, row=9, sticky=N)
+
+    def display_entry(self):
+
+        self.question_entry = Text(self, font=("Oswald", 15), width=60, height=5)
+        self.question_entry.grid(column=0, row=2, rowspan=2)
+
+        self.choice_entry = Text(self, font=("Oswald", 15), width=60, height=3)
+        self.choice_entry.grid(column=0, row=5, rowspan=2)
+
+        self.answer_entry = Text(self, font=("Oswald", 15), width=60, height=3)
+        self.answer_entry.grid(column=0, row=8, rowspan=2)
 
 class TestOn(Toplevel):
 
@@ -215,8 +276,11 @@ class TestOn(Toplevel):
         self.mark = 0
         self.radio_but = []
         self.check_but = []
+        self.check_but_state = []
+        self.your_mul_choice = []
+        self.mul_answers = []
 
-        # Checkbox Answers
+        # Radiobut Answer
         self.one_choice_but = IntVar()
         self.one_choice_but.set(0)
 
@@ -234,16 +298,15 @@ class TestOn(Toplevel):
         self.display_question_num()
         self.display_button(turn_back)
 
-        # random.shuffle(self.questions)
-
     def display_question(self):
 
         self.question_box = Text(self, font=("Oswald", 15), height=5, width=72)
-        self.question_box.grid(column=0, row=2, columnspan=3, sticky=S)
+        self.question_box.grid(column=0, row=2, columnspan=3, sticky=W)
 
         self.cur_question = self.questions[self.cur_pos]
         self.question_box.delete("1.0", END)
         self.question_box.insert(END, self.cur_question)
+        self.question_box.config(state=DISABLED)
 
     def display_time(self, test_time):
 
@@ -276,7 +339,7 @@ class TestOn(Toplevel):
             self.previous_button.grid(column=2, row=7, sticky=W)
 
         # Submit
-        self.submit_question = Button(self, text="Submit", font=("Oswald", 15), width=10)
+        self.submit_question = Button(self, text="Submit", font=("Oswald", 15), width=10, command=self.submit)
         self.submit_question.grid(column=0, row=7, sticky=W)
 
     def display_one_choice_answer(self):
@@ -316,18 +379,30 @@ class TestOn(Toplevel):
 
         for value, choice in enumerate(
                 self.question_set[self.question_set.question == self.cur_question].choices.item().split(", "), 1):
-            radio_button = Radiobutton(self, text="", variable=self.one_choice_but, value=value)
-            radio_button.grid(column=0, row=2 + value, sticky=W)
+            radio_button = WrappingRadiobutton(self, text="", variable=self.one_choice_but, value=value, justify="left")
+            radio_button.grid(column=0, row=2 + value, columnspan=3, sticky=W)
+
             self.radio_but.append(radio_button)
 
     def mul_choice(self):
 
         self.check_but = []
+        self.check_but_state = []
 
         for value, choice in enumerate(
                 self.question_set[self.question_set.question == self.cur_question].choices.item().split(", "), 1):
-            check_button = Checkbutton(self, text="", onvalue=value, offvalue=0)
-            check_button.grid(column=0, row=value + 2, sticky=W)
+            self.mul_choice_but = StringVar()
+            self.mul_choice_but.set("off")
+
+            check_button = WrappingCheckbutton(self,
+                                               text="",
+                                               variable=self.mul_choice_but,
+                                               onvalue=f"{self.question_set[self.question_set.question == self.cur_question].choices.item().split(', ')[value - 1]}",
+                                               offvalue="off",
+                                               justify="left")
+            check_button.grid(column=0, row=value + 2, columnspan=3, sticky=W)
+
+            self.check_but_state.append(self.mul_choice_but)
             self.check_but.append(check_button)
 
         for value, check_button in enumerate(self.check_but, 0):
@@ -337,11 +412,23 @@ class TestOn(Toplevel):
 
         if self.num_of_answer() == 1:
             if self.question_set[self.question_set.question == self.cur_question].choices.item().split(", ")[
-                      self.one_choice_but.get() - 1] == self.question_set[self.question_set.question == self.cur_question].answer.item():
+                self.one_choice_but.get() - 1] == self.question_set[
+                self.question_set.question == self.cur_question].answer.item():
                 return True
+
+        self.your_mul_choice = []
+
         if self.num_of_answer() > 1:
-            pass
-        
+            for value, choice in enumerate(self.check_but_state, 0):
+                if not choice.get() == "off":
+                    self.your_mul_choice.append(choice.get())
+            self.mul_answers = self.question_set[self.question_set.question == self.cur_question].answer.item().split(
+                ", ")
+            self.mul_answers.sort()
+            self.your_mul_choice.sort()
+            if self.mul_answers == self.your_mul_choice:
+                return True
+
     def timer_countdown(self, test_time):
 
         count_hour = math.floor(test_time / 3600)
@@ -362,7 +449,8 @@ class TestOn(Toplevel):
             global timer
             timer = self.after(1000, self.timer_countdown, test_time - 1)
         else:
-            messagebox.showinfo("Time is up!")
+            messagebox.showinfo(title=f"Time is up!", message=f"Your result is {self.mark}/{self.num_of_question()}")
+            self.destroy()
 
     def next_qus(self):
 
@@ -374,7 +462,7 @@ class TestOn(Toplevel):
         if self.cur_pos == self.num_of_question():
 
             messagebox.showinfo(title="Complete!",
-                                message=f"You complete all question\nYour mark is {self.mark}/{self.num_of_question()}")
+                                message=f"You complete all question\nYour result is {self.mark}/{self.num_of_question()}")
             self.destroy()
         else:
 
@@ -396,8 +484,29 @@ class TestOn(Toplevel):
     def submit(self):
 
         if self.cur_pos < self.num_of_question():
-            messagebox.askyesnocancel(title="Test hasn't complete", message="You haven't complete the test, are you "
-                                                                            "sure to submit?")
+            res = messagebox.askyesno(title="Test hasn't complete",
+                                      message="You haven't complete the test, are you "
+                                              "sure to submit?")
+            if res == True:
+                messagebox.showinfo(title="Complete",
+                                    message=f"You complete your test with result {self.mark}/{self.num_of_question()}")
+                self.destroy()
+
+
+class WrappingCheckbutton(Checkbutton):
+    """a type of Checkbutton that automatically adjusts the wrap to the size"""
+
+    def __init__(self, master, **kwargs):
+        Checkbutton.__init__(self, master, **kwargs)
+        self.bind('<Configure>', lambda e: self.config(wraplength=master.winfo_width() - 40))
+
+
+class WrappingRadiobutton(Radiobutton):
+    """a type of Radiobutton that automatically adjusts the wrap to the size"""
+
+    def __init__(self, master=None, **kwargs):
+        Radiobutton.__init__(self, master, **kwargs)
+        self.bind('<Configure>', lambda e: self.config(wraplength=master.winfo_width() - 40))
 
 
 if __name__ == "__main__":
