@@ -486,6 +486,15 @@ class AdjustTest(Toplevel):
 
         self.title("Làm bài")
         self.geometry("800x600")
+        self.display_sorry()
+
+    def display_sorry(self):
+        self.sorry = Label(self, text="This function is under development, sorry about the inconvenience",
+                           font=("Oswald", 15, "bold"))
+        self.sorry.grid(column=0, row=1)
+
+        self.back = Button(self, text="OK", font=("Oswald", 15), command=self.destroy)
+        self.back.grid(column=0, row=2)
 
 
 class CheckHistory(Toplevel):
