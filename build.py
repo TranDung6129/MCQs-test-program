@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import messagebox
 from tkinter import simpledialog
+from tkinter import ttk
 import sqlite3
 from PIL import Image, ImageTk
 import time
@@ -11,18 +12,24 @@ import math
 import sympy as sp
 import numpy
 import os.path
+from functools import partial
 
 timer = None
 
 
 # Main Screen
 class MainScreen(Tk):
+    """Main screen of the software, including buttons for users to choose depending on the purpose of use,
+    the username box for users to enter a name to distinguish it from other users of other software on the same
+    computer. """
 
     def __init__(self):
         super().__init__()
 
         self.title("Lựa chọn")
         self.geometry("800x600")
+        icon = PhotoImage(file="./images/hust_logo.png")
+        self.iconphoto(False, icon)
 
         self.display_canvas()
         self.display_label()
@@ -76,7 +83,7 @@ class MainScreen(Tk):
 
         res = ""
         username = self.username_box.get()
-        isExist = os.path.exists(f"./userdata/{username}")
+        self.isExist = os.path.exists(f"./userdata/{username}")
 
         if username == "":
             res = messagebox.askyesno(title="Enter your username",
@@ -87,13 +94,14 @@ class MainScreen(Tk):
             else:
                 return False
 
-        elif not isExist:
+        elif not self.isExist:
             res = messagebox.askyesno(title="User not found",
                                       message="Check your username again or click 'Yes' button to create new")
             if res:
                 self.check_to_add_username()
             else:
                 return False
+
         else:
 
             messagebox.showinfo(title="Success", message="Login successfully")
@@ -105,7 +113,9 @@ class MainScreen(Tk):
 
         if self.new_username == None or self.new_username == "":
             messagebox.showerror(title="Error", message="Please enter your new username")
-
+        elif self.isExist:
+            messagebox.showerror(title="Error",
+                                 message=f"Username \"{self.new_username}\" already exist, please choose another")
         else:
             print(self.new_username)
             os.makedirs(f"./userdata/{self.new_username}")
@@ -134,6 +144,8 @@ class ImportFile(Toplevel):
 
         self.title("Nhập đề")
         self.geometry("800x600")
+        icon = PhotoImage(file="./images/hust_logo.png")
+        self.iconphoto(False, icon)
 
         self.display_label()
         self.display_timerbox()
@@ -277,6 +289,8 @@ class CreateFile(Toplevel):
 
         self.title("Tạo đề")
         self.geometry("680x600")
+        icon = PhotoImage(file="./images/hust_logo.png")
+        self.iconphoto(False, icon)
         self.menubar = Menu(self)
 
         self.display_label()
@@ -402,8 +416,16 @@ class CreateFile(Toplevel):
 
     def export_file(self):
 
+        file_exist = False
         self.new_test_name = simpledialog.askstring(title="Add file", prompt="New test file name: ")
-        file_exist = os.path.exists(self.new_test_name)
+        try:
+            os.path.exists(f"./tests/{self.new_test_name}.csv")
+
+        except TypeError:
+            messagebox.showerror(title="Invalid file name", message="Please enter file name")
+        else:
+            file_exist = os.path.exists(f"./tests/{self.new_test_name}.csv")
+
         res = ""
         nos = ""
 
@@ -431,13 +453,15 @@ class CreateFile(Toplevel):
                 res = messagebox.askyesno(title="Export File", message="Are you sure to export file?")
                 if res:
                     question_file = pandas.DataFrame.from_dict(self.questions_dict)
-                    question_file.to_csv(f"./test/{self.new_test_name}.csv", index=False)
+                    question_file.to_csv(f"./tests/{self.new_test_name}.csv", index=False)
                 messagebox.showinfo(title="Success", message="File export successfully")
 
+    def check_to_ask_question(self):
+        pass
+
     def exit_button(self):
-        is_back = messagebox.askokcancel(title="Warning", message="Are you sure to back? Your progress will be saved")
+        is_back = messagebox.askokcancel(title="Warning", message="Are you sure to exit, all progress will lost")
         if is_back:
-            print(type(self.questions_dict))
             self.destroy()
 
     def adjust_test(self):
@@ -487,6 +511,8 @@ class AdjustTest(Toplevel):
         self.title("Làm bài")
         self.geometry("800x600")
         self.display_sorry()
+        icon = PhotoImage(file="./images/hust_logo.png")
+        self.iconphoto(False, icon)
 
     def display_sorry(self):
         self.sorry = Label(self, text="This function is under development, sorry about the inconvenience",
@@ -506,6 +532,8 @@ class CheckHistory(Toplevel):
         self.geometry("800x600")
         self.display_label()
         self.display_button()
+        icon = PhotoImage(file="./images/hust_logo.png")
+        self.iconphoto(False, icon)
 
     def display_label(self):
         self.sorry = Label(self, text="This function is under development, sorry about the inconvenience",
@@ -526,49 +554,117 @@ class TestOn(Toplevel):
         super().__init__(parent)
 
         self.title("Làm bài")
-        self.geometry("800x600")
+        self.geometry("1100x600")
+        icon = PhotoImage(file="./images/hust_logo.png")
+        self.iconphoto(False, icon)
 
         self.cur_pos = 0
         self.mark = 0
         self.radio_but = []
         self.check_but = []
+
         self.check_but_state = []
         self.your_mul_choice = []
         self.mul_answers = []
 
+        self.qs_button_list = {}
+
+        self.show_page = IntVar()
+        self.show_page.set(1)
+
+        self.question_bar_page = {}
+
         # Radiobut Answer
-        self.one_choice_but = IntVar()
-        self.one_choice_but.set(0)
+        self.one_choice_but = StringVar()
+        self.one_choice_but.set("off")
 
         # Read Question file
         self.question_set = pandas.read_csv(filepath)
         self.questions = self.question_set.question.to_list()
+        self.choices = self.question_set.choices.to_list()
+        self.answer = self.question_set.answer.to_list()
+        self.final_qs_set = []
+
+        self.input_question_file()
+
         if suffle == 1:
-            random.shuffle(self.questions)
+            random.shuffle(self.final_qs_set)
 
         if hard == 1:
             messagebox.showinfo(title="Sorry", message="Hard mode is under development, sorry for the inconvenience")
 
         if turn_back == 1:
-            messagebox.showinfo(title="Sorry", message="Allow turn back is under development, sorry for the "
-                                                       "inconvenience")
+            self.display_question_choose_bar()
+            self.display_spinbox()
 
         self.display_question()
         self.display_choices()
+        self.display_divider()
 
         self.display_time(test_time)
-        self.display_test_name(test_name)
+        self.display_test_name(test_name, turn_back)
         self.display_question_num()
         self.display_button(turn_back)
 
-    def display_question(self):
+        self.manipulate_qs_bar()
+        print(self.question_bar_page)
 
+    def input_question_file(self):
+
+        for i in range(self.num_of_question()):
+            to_add = {"question": self.questions[i], "choices": self.choices[i].split('| '),
+                      "answer": self.answer[i].split("| ")}
+            self.final_qs_set.append(to_add)
+
+    def display_question_choose_bar(self):
+        for i in range(1, self.num_of_question() + 1):
+            self.qs_button_list[i] = Button(self, text=i, height=2, width=4,
+                                            command=partial(self.get_user_click, but=i))
+            if 25 * (self.show_page.get() - 1) + i <= 9:
+                self.qs_button_list[i].config(text=f"0{25 * (self.show_page.get() - 1) + i}")
+                self.qs_button_list[i].place(x=820 + 50 * ((i - 1) % 5), y=60 + 50 * ((i - 1) // 5))
+            else:
+                self.qs_button_list[i].place(x=820 + 50 * ((i - 1) % 5), y=60 + 50 * ((i - 1) // 5))
+
+    def manipulate_qs_bar(self):
+
+        for page in range(1, self.num_of_question() // 25 + 1 + 1):
+            self.question_bar_page[page] = []
+
+        for i in self.qs_button_list:
+            if i % 25 == 0:
+                self.question_bar_page[i / 25].append(self.qs_button_list[i])
+            else:
+                self.question_bar_page[i // 25 + 1].append(self.qs_button_list[i])
+
+    def display_spinbox(self):
+
+        label = Label(self, text="Page: ", font=("Oswald", 15))
+        label.place(x=820, y=360)
+        if self.num_of_question() % 25 == 0:
+            spin_qs_box = Spinbox(self, from_=1, to=self.num_of_question() / 25, textvariable=self.show_page,
+                                  command=self.display_question_choose_bar)
+        else:
+            spin_qs_box = Spinbox(self, from_=1, to=self.num_of_question() // 25 + 1, textvariable=self.show_page,
+                                  command=self.display_question_choose_bar)
+
+        spin_qs_box.place(width=80, height=30, x=880, y=360)
+
+    def get_user_click(self, but):
+        print(self.qs_button_list[but].cget("text"))
+
+    def go_to_qs(self):
+        """Trả về câu hỏi ở vị trí đúng với số hiển thị trên nút, cùng với đó là hiển thị các lựa chọn không có sự thay đổi gì nếu
+        như người dùng đã chọn phương án trả lời cho câu hỏi đó"""
+        self.question_box.delete("1.0", END)
+
+    def display_question(self):
+        """Những câu hỏi đã trả lời được đổi màu trên thanh lựa chọn câu hỏi sang màu khác."""
         self.question_box = Text(self, font=("Oswald", 15), height=5, width=72)
         self.question_box.grid(column=0, row=2, columnspan=3, sticky=W)
 
-        self.cur_question = self.questions[self.cur_pos]
         self.question_box.delete("1.0", END)
-        self.question_box.insert(END, self.cur_question)
+        self.question_box.insert(END, self.final_qs_set[self.cur_pos]["question"])
         self.question_box.config(state=DISABLED)
 
     def display_time(self, test_time):
@@ -584,10 +680,19 @@ class TestOn(Toplevel):
         self.question_num = Label(self, text=f"Question {self.cur_pos + 1}/{len(self.questions)}", font=("Oswald", 15))
         self.question_num.grid(column=0, row=1, sticky=W)
 
-    def display_test_name(self, test_name):
+    def display_divider(self):
+
+        divider = ttk.Separator(self, orient=VERTICAL, style="TSeparator", takefocus=1, cursor="man")
+        divider.grid(column=3, row=0, rowspan=8, pady=10, padx=10, ipady=200)
+
+    def display_test_name(self, test_name, turn_back):
         # Subject
         self.subj_name = Label(self, text=f"{test_name}", font=("Oswald", 15))
         self.subj_name.grid(column=0, row=0, sticky=W)
+
+        if turn_back == 1:
+            self.question_nof = Label(self, text="Questions", font=("Oswald", 15))
+            self.question_nof.grid(column=4, row=0, columnspan=5, sticky=S)
 
     def display_button(self, turn_back):
 
@@ -609,13 +714,13 @@ class TestOn(Toplevel):
 
         for value, radio_button in enumerate(self.radio_but, 0):
             radio_button.config(
-                text=f"{self.question_set[self.question_set.question == self.cur_question].choices.item().split(', ')[value]}")
+                text=f"{self.final_qs_set[self.cur_pos]['choices'][value]}")
 
     def display_mul_choices_answer(self):
 
         for value, check_button in enumerate(self.check_but, 0):
             check_button.config(
-                text=f"{self.question_set[self.question_set.question == self.cur_question].choices.item().split(', ')[value]}")
+                text=f"{self.final_qs_set[self.cur_pos]['choices'][value]}")
 
     def display_choices(self):
 
@@ -627,10 +732,7 @@ class TestOn(Toplevel):
             self.display_mul_choices_answer()
 
     def num_of_answer(self):
-        return len(self.question_set[self.question_set.question == self.cur_question].answer.item().split(", "))
-
-    def get_qs_choice(self):
-        return self.question_set[self.question_set.question == self.cur_question].choices.item().split(", ")
+        return len(self.final_qs_set[self.cur_pos]["answer"])
 
     def num_of_question(self):
         return len(self.questions)
@@ -638,11 +740,12 @@ class TestOn(Toplevel):
     def one_choice(self):
 
         self.radio_but = []
-        self.one_choice_but.set(0)
+        self.one_choice_but.set("off")
 
-        for value, choice in enumerate(
-                self.question_set[self.question_set.question == self.cur_question].choices.item().split(", "), 1):
-            radio_button = WrappingRadiobutton(self, text="", variable=self.one_choice_but, value=value, justify="left")
+        for value, choice in enumerate(self.final_qs_set[self.cur_pos]["choices"], 1):
+            radio_button = WrappingRadiobutton(self, text="", variable=self.one_choice_but,
+                                               value=self.final_qs_set[self.cur_pos]["choices"][value - 1],
+                                               justify="left")
             radio_button.grid(column=0, row=2 + value, columnspan=3, sticky=W)
 
             self.radio_but.append(radio_button)
@@ -652,15 +755,14 @@ class TestOn(Toplevel):
         self.check_but = []
         self.check_but_state = []
 
-        for value, choice in enumerate(
-                self.question_set[self.question_set.question == self.cur_question].choices.item().split(", "), 1):
+        for value, choice in enumerate(self.final_qs_set[self.cur_pos]["choices"], 1):
             self.mul_choice_but = StringVar()
             self.mul_choice_but.set("off")
 
             check_button = WrappingCheckbutton(self,
                                                text="",
                                                variable=self.mul_choice_but,
-                                               onvalue=f"{self.question_set[self.question_set.question == self.cur_question].choices.item().split(', ')[value - 1]}",
+                                               onvalue=f"{self.final_qs_set[self.cur_pos]['choices'][value - 1]}",
                                                offvalue="off",
                                                justify="left")
             check_button.grid(column=0, row=value + 2, columnspan=3, sticky=W)
@@ -668,27 +770,29 @@ class TestOn(Toplevel):
             self.check_but_state.append(self.mul_choice_but)
             self.check_but.append(check_button)
 
-        for value, check_button in enumerate(self.check_but, 0):
-            self.check_but[value].deselect()
+        # for value, check_button in enumerate(self.check_but, 0):
+        #     self.check_but[value].deselect()
 
     def check_answer(self):
 
         if self.num_of_answer() == 1:
-            if self.question_set[self.question_set.question == self.cur_question].choices.item().split(", ")[
-                self.one_choice_but.get() - 1] == self.question_set[
-                self.question_set.question == self.cur_question].answer.item():
-                return True
+
+            if not self.one_choice_but.get() == "off":
+                if self.one_choice_but.get() == self.final_qs_set[self.cur_pos]["answer"][0]:
+                    return True
 
         self.your_mul_choice = []
 
         if self.num_of_answer() > 1:
+
             for value, choice in enumerate(self.check_but_state, 0):
                 if not choice.get() == "off":
                     self.your_mul_choice.append(choice.get())
-            self.mul_answers = self.question_set[self.question_set.question == self.cur_question].answer.item().split(
-                ", ")
+
+            self.mul_answers = self.final_qs_set[self.cur_pos]["answer"]
             self.mul_answers.sort()
             self.your_mul_choice.sort()
+
             if self.mul_answers == self.your_mul_choice:
                 return True
 
