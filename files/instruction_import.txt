@@ -1,0 +1,11 @@
+Welcome to MCQs test program
+
+There are some instruction for you to import file
+
+1) Fill the path box with path to your file contain test data, if you don't have one so back to main screen and click CREATE button to create new test.
+2) Test you created will in file "test".
+3) In Set time, you will set your time to do test.
+4) Test name is name of your test.
+5) Allow back to previous question if you want back to previous
+6) Shuffle question to shuffle the order question appear in the test.
+7) Hard mode will deduct your points if you choose the wrong answer and you can't submit until you have finished the test, moreover you can't click outside the test screen.

@@ -457,7 +457,9 @@ class CreateFile(Toplevel):
                 messagebox.showinfo(title="Success", message="File export successfully")
 
     def check_to_ask_question(self):
-        pass
+        for answer in self.question_entry["answer"]:
+            if answer not in self.question_entry["choice"]:
+                return False
 
     def exit_button(self):
         is_back = messagebox.askokcancel(title="Warning", message="Are you sure to exit, all progress will lost")
@@ -607,7 +609,7 @@ class TestOn(Toplevel):
         self.display_button(turn_back)
 
         self.manipulate_qs_bar()
-        print(self.question_bar_page)
+
 
     def input_question_file(self):
 

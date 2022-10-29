@@ -1,0 +1,11 @@
+Welcome to MCQs test program!
+
+There are some instruction for you to create your own test
+
+1) If you already have a test, and you want to continue add question, click the file button and "Open..." your file
+2) Enter your question, choices, answer to reference textbox.
+3) Mind that in choices box, each choice must seperate from other choices by "| ". Example: choice1, choice2, choice3,...
+4) Same as answer box, each answer must separate from other answers by "| "
+3) After enter all the field, you click "Create" button to add new question to your test.
+4) If you add all your question, click File in menu and click "Save" to save your file.
+5) If in the adding process you made some fault, don't worry and click "Edit" in menu to fix this fault.
